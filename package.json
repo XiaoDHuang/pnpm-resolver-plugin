@@ -13,6 +13,10 @@
     "monorepo",
     "pnpm"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XiaoDHuang/pnpm-resolver-plugin.git"
+  },
   "author": "XiaoDHuang <huangdongdong3@qq.com> (https://github.com/XiaoDHuang)",
   "license": "MIT"
 }
