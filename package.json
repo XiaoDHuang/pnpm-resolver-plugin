@@ -1,6 +1,6 @@
 {
   "name": "pnpm-resolver-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "webpack parsing pnpm module plugin",
   "main": "src/index.js",
   "scripts": {
