@@ -4,29 +4,32 @@ const fs = require('fs');
 
 class PnpmResolverPlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap('PnpmResolverPlugin', (compilation, options) => {
-      const hander = (module) => {
-        if (!module.resource) return;
-
-        if (module.resource.match(/\.(ejs)$/)) return;
-
+    compiler.hooks.compilation.tap('PnpmResolverPlugin', (compilation, {normalModuleFactory}) => {
+      normalModuleFactory.hooks.afterResolve.tap('PnpmResolverPlugin', (result) => {
         try {
-          const resource = fs.realpathSync(module.resource);
+          const resource = fs.realpathSync(result.resource);
           const context = getContext(resource);
 
-          if (module.request === module.resource && module.userRequest === module.resource) {
-            module.request = resource;
-            module.userRequest = resource;
+          if (result.userRequest === result.resource) {
+            result.userRequest = resource;
           }
 
-          module.context = context;
-          module.resource = resource;
+          if (result.request === result.resource) {
+            result.request = resource;
+          }
+
+          result.resource = resource;
+          result.context = context;
+
+          result.resourceResolveData.descriptionFilePath = fs.realpathSync(result.resourceResolveData.descriptionFilePath);
+          result.resourceResolveData.descriptionFileRoot = fs.realpathSync(result.resourceResolveData.descriptionFileRoot);
+          result.resourceResolveData.path = fs.realpathSync(result.resourceResolveData.path);
+
         } catch(err) {
           // debugger;
         }
-      };
+      })
 
-      compilation.hooks.buildModule.tap('PnpmResolverPlugin', hander);
     });
   }
 }
