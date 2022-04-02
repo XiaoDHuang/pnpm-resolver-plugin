@@ -1,3 +1,18 @@
+
+# 支持的安装模式
+> 目前该插件支持pnpm安装模块的两种模式， 提升模式与和不提升模式
+- 项目根目录下
+```sh
+# 该模式下只会把项目根目录下package.json中dependencies和devDependencies列出模块放入项目根目录下node_modules中，其他间接模块统一软链到相关依赖.pnpm目录中
+pnpm install
+```
+```sh
+# 该模式会向npm一样把所有模块提升到项目根目录下node_modules, 所以该项目下会存在大量依赖包
+pnpm install ----shamefully-hoist
+```
+
+
+
 # Pnpm Resolver Webpack Plugin
 这是一个关于webpack解析pnpm模块的插件
 
@@ -22,29 +37,42 @@
 ```js
 class PnpmResolverPlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap('PnpmResolverPlugin', (compilation, options) => {
-      const hander = (module) => {
-        if (!module.resource) return;
 
-        if (module.resource.match(/\.(ejs)$/)) return;
+    compiler.hooks.compilation.tap('PnpmResolverPlugin', (compilation, {normalModuleFactory}) => {
+      const loaderContext = `${compiler.context}/node_modules/.pnpm`
+      const isPnpmModule = fs.existsSync(loaderContext);
 
+      if (!isPnpmModule) return;
+
+      // 这里主要处理 css-loader babel-loader 内置到公司内部脚手架问题
+      normalModuleFactory.context = loaderContext;
+
+      // 这里主要处理模块真实路径问题
+      normalModuleFactory.hooks.afterResolve.tap('PnpmResolverPlugin', (result) => {
         try {
-          const resource = fs.realpathSync(module.resource);
+          const resource = fs.realpathSync(result.resource);
           const context = getContext(resource);
 
-          if (module.request === module.resource && module.userRequest === module.resource) {
-            module.request = resource;
-            module.userRequest = resource;
+          if (result.userRequest === result.resource) {
+            result.userRequest = resource;
           }
 
-          module.context = context;
-          module.resource = resource;
+          if (result.request === result.resource) {
+            result.request = resource;
+          }
+
+          result.resource = resource;
+          result.context = context;
+
+          result.resourceResolveData.descriptionFilePath = fs.realpathSync(result.resourceResolveData.descriptionFilePath);
+          result.resourceResolveData.descriptionFileRoot = fs.realpathSync(result.resourceResolveData.descriptionFileRoot);
+          result.resourceResolveData.path = fs.realpathSync(result.resourceResolveData.path);
+
         } catch(err) {
           // debugger;
         }
-      };
+      })
 
-      compilation.hooks.buildModule.tap('PnpmResolverPlugin', hander);
     });
   }
 }

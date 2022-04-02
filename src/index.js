@@ -5,6 +5,15 @@ const fs = require('fs');
 class PnpmResolverPlugin {
   apply(compiler) {
     compiler.hooks.compilation.tap('PnpmResolverPlugin', (compilation, {normalModuleFactory}) => {
+      const loaderContext = `${compiler.context}/node_modules/.pnpm`
+      const isPnpmModule = fs.existsSync(loaderContext);
+
+      if (!isPnpmModule) return;
+
+      // 这里主要处理 css-loader babel-loader 内置到公司内部脚手架问题
+      normalModuleFactory.context = loaderContext;
+
+      // 这里主要处理模块真实路径问题
       normalModuleFactory.hooks.afterResolve.tap('PnpmResolverPlugin', (result) => {
         try {
           const resource = fs.realpathSync(result.resource);
