@@ -4,12 +4,12 @@ const fs = require('fs');
 
 class PnpmResolverPlugin {
   apply(compiler) {
-    const loaderContext = `${compiler.context}/node_modules/.pnpm`
+    const loaderContext = `${compiler.context}/node_modules/.pnpm`;
     const isPnpmModule = fs.existsSync(loaderContext);
     if (!isPnpmModule) return;
 
 
-    compiler.options.resolve.modules.push(loaderContext)
+    compiler.options.resolve.modules.push(`${loaderContext}/node_modules`);
     compiler.options.resolve.symlinks = true;
 
     compiler.hooks.compilation.tap('PnpmResolverPlugin', (compilation, {normalModuleFactory}) => {
