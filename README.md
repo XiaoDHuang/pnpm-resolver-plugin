@@ -35,18 +35,28 @@ pnpm install ----shamefully-hoist
 # 解决方案
 > 就是在webpack构建NormalModule模块时， 重新解析下模块文件实际位置即可。
 ```js
+
+const fs = require('fs');
+
+
 class PnpmResolverPlugin {
   apply(compiler) {
+    // 这里判断是否为pnpm构建的模块
+    const loaderContext = `${compiler.context}/node_modules/.pnpm`;
+    const isPnpmModule = fs.existsSync(loaderContext);
+    if (!isPnpmModule) return;
+
+    // 这里主要处理 如果因为先前的依赖提升， 没被安装模块， 提供一个扁平的模块解析路径。 主要针对pnpm 非----shamefully-hoist 模式的安装(注意：有可能会遇到版本问题)
+    compiler.options.resolve.modules.push(`${loaderContext}/node_modules`);
+    compiler.options.resolve.symlinks = true;
 
     compiler.hooks.compilation.tap('PnpmResolverPlugin', (compilation, {normalModuleFactory}) => {
-      const loaderContext = `${compiler.context}/node_modules/.pnpm`
-      const isPnpmModule = fs.existsSync(loaderContext);
-
-      if (!isPnpmModule) return;
-
-      // 这里主要处理 css-loader babel-loader 内置到公司内部脚手架问题
+    
+      // 这里主要处理 css-loader babel-loader 内置到公司内部脚手架的问题
       normalModuleFactory.context = loaderContext;
-
+      
+      // compiler.options.resolve.symlinks = true; 解决实际路径问题
+      /**
       // 这里主要处理模块真实路径问题
       normalModuleFactory.hooks.afterResolve.tap('PnpmResolverPlugin', (result) => {
         try {
@@ -72,8 +82,11 @@ class PnpmResolverPlugin {
           // debugger;
         }
       })
-
+      **/
     });
   }
 }
+
+module.exports = PnpmResolverPlugin;
+
 ```
