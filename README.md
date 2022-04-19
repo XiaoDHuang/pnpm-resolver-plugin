@@ -1,7 +1,10 @@
 
 # 说明
 > 本文档主要提供， 如果项目引用pnpm， 遇到模块解析的问题， 提供的一些思路， 对于老旧的项目， 因为内部脚手架，等等出现的影子依赖问题， 建议使用 pnpm install ----shamefully-hoist， 但也会有可能遇到package.lock锁定版本结构， 跟pnpm版本提升的版本结构不一致。 
-总体而言： 因为先前npm模块提升, 影子依赖， package锁定版本结构等问提， 在旧有项目使用pnpm 会出现这样或那样问题， 模块解析不到， 本插件基本上解决一些通用解析路径问题， 如遇到问题， 需要根据根据自己项目情况，去解决， 但总体思路都是一样的。
+总体而言： 因为先前npm模块提升, 影子依赖， package锁定版本结构等问提， 在旧有项目使用pnpm 会出现这样或那样问题， 模块解析不到， 本插件基本上解决一些通用解析路径问题， 如遇到问题， 需要根据根据自己项目情况，去解决， 但总体思路都是一样的。  
+最后， 可以不用本插件下， 对常规项目简单配置即可使用pnpm
+
+[关联文档](https://codemao.yuque.com/docs/share/31bd05d7-d1d2-4d87-bb62-d45c49eb571e)
 
 # 支持的安装模式
 > 目前该插件支持pnpm安装模块的两种模式， 提升模式与和不提升模式
@@ -93,4 +96,58 @@ class PnpmResolverPlugin {
 
 module.exports = PnpmResolverPlugin;
 
+```
+
+# 终极解决方案
+## 问题
+- webpack软链解析问题
+- 公司内部脚手架对loader及babel相关库相对项目而言造成的影子依赖问题
+- 项目中影子依赖问题，
+- package-lock带来锁版本问题, 如何在pnpm中锁定版本
+
+> 一个提升代码锁版本，一个语义化版本号带来锁版本问题
+
+
+## 老旧项目迁移pnpm
+### 第一种情况(平滑迁移)
+- 解决webpack 软链问题提
+- 解决所有影子依赖问题
+- 解决package-lock 锁版本问题
+webpack配置
+```js
+options.resolve.symlinks = true 
+```
+命令行
+```bash
+# 将packaage-lock 文件转为 pnpm-lock.yml
+pnpm import 
+```
+.npmrc 配置
+```bash
+# 扁平方式安装
+shamefully-hoist=true
+```
+或
+```bash
+pnpm install --shamefully-hoist
+```
+
+### 第二种情况(解决部分脚手架loader及babel影子依赖问题)
+
+webpack配置
+```js
+options.resolve.symlinks = true 
+```
+
+.npmrc配置
+```bash
+# 把脚手架中loader提升到公共(项目)node_modules下
+public-hoist-pattern[]=*loader*
+# 把babel相关库提升到公共(项目)node_modules下
+public-hoist-pattern[]=*babel*
+
+# 如果构建过程中还发现其他影子依赖问题 要么安装上去， 要不在这里提升上来
+
+# 不使用扁平方式， 默认false 可以不配置
+shamefully-hoist=false
 ```
